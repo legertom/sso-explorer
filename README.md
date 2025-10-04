@@ -87,7 +87,7 @@ A comprehensive web application that demonstrates Clever's District SSO integrat
 ## 📁 Project Structure
 
 ```
-clever-print-app/
+sso-explorer/
 ├── public/
 │   └── index.html          # Frontend application
 ├── server.js               # Express server with OAuth flow
