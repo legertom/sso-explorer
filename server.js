@@ -234,12 +234,16 @@ app.get('/auth/clever/callback', async (req, res) => {
             
             console.log('Step 5: Creating HTML response...');
 
+            const serializedData = JSON.stringify(availableData)
+                .replace(/</g, '\\u003c')
+                .replace(/>/g, '\\u003e');
+
             const htmlResponse = `
 <!DOCTYPE html>
 <html>
 <head>
     <title>Clever Login Success</title>
-    <script id="clever-data" type="application/json">${escapeJsonForHtml(availableData)}</script>
+    <script id="clever-data" type="application/json">${serializedData}</script>
     <script>
         window.addEventListener('DOMContentLoaded', function() {
             try {
