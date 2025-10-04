@@ -40,8 +40,23 @@ const axiosConfig = {
     }
 };
 
-// Security headers middleware
-app.use(helmet());
+// Security headers middleware with CSP configuration
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for callback page
+            scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"]
+        }
+    }
+}));
 
 // Rate limiting for auth routes - prevents brute force attacks
 const authLimiter = rateLimit({
@@ -84,13 +99,16 @@ function escapeJsonForHtml(obj) {
  * @returns {Promise<Object>} - User, profile, and district data
  */
 async function fetchCleverUserData(accessToken) {
-    const headers = { 'Authorization': `Bearer ${accessToken}` };
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'User-Agent': 'CleverPrintApp/1.0'
+    };
     
     try {
         // Get basic user information
         const userResponse = await axios.get(`${config.clever.apiUrl}/me`, {
             headers,
-            ...axiosConfig
+            timeout: 10000
         });
         
         const userId = userResponse.data?.data?.id;
@@ -102,13 +120,13 @@ async function fetchCleverUserData(accessToken) {
         
         // Fetch profile and district data in parallel
         const [profileResponse, districtResponse] = await Promise.all([
-            axios.get(`${config.clever.apiUrl}/users/${userId}`, { 
+            axios.get(`${config.clever.apiUrl}/users/${userId}`, {
                 headers,
-                ...axiosConfig 
+                timeout: 10000
             }),
-            axios.get(`${config.clever.apiUrl}/districts/${districtId}`, { 
+            axios.get(`${config.clever.apiUrl}/districts/${districtId}`, {
                 headers,
-                ...axiosConfig 
+                timeout: 10000
             })
         ]);
         
@@ -154,13 +172,20 @@ app.get('/auth/clever/callback', async (req, res) => {
 
     try {
         // Exchange authorization code for access token
+        console.log('Exchanging code for token...');
         const tokenResponse = await axios.post(`${config.clever.baseUrl}/oauth/tokens`, {
             client_id: config.clever.clientId,
             client_secret: config.clever.clientSecret,
             code: code,
             grant_type: 'authorization_code',
             redirect_uri: config.clever.redirectUri
-        }, axiosConfig);
+        }, {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'CleverPrintApp/1.0',
+                'Content-Type': 'application/json'
+            }
+        });
 
         const { access_token } = tokenResponse.data;
         
@@ -168,6 +193,7 @@ app.get('/auth/clever/callback', async (req, res) => {
             throw new Error('No access token received from Clever');
         }
         
+        console.log('Access token received, length:', access_token.length);
         console.log('=== FETCHING AVAILABLE CLEVER DATA ===');
 
         const cleverData = await fetchCleverUserData(access_token);
@@ -190,25 +216,150 @@ app.get('/auth/clever/callback', async (req, res) => {
         };
 
         console.log('Successfully fetched available data!');
+        console.log('Available data keys:', Object.keys(availableData));
+        console.log('Data structure:');
+        console.log('- authInfo:', typeof availableData.authInfo);
+        console.log('- me:', typeof availableData.me);
+        console.log('- userProfile:', typeof availableData.userProfile);
+        console.log('- district:', typeof availableData.district);
         
-        const escapedData = escapeJsonForHtml(availableData);
-        
-        // Return HTML page that stores data in localStorage and redirects
-        res.send(`
+        try {
+            console.log('Step 1: Converting data to JSON string...');
+            const jsonString = JSON.stringify(availableData);
+            console.log('Step 2: JSON string created, length:', jsonString.length);
+            
+            console.log('Step 3: Converting to base64...');
+            const dataString = Buffer.from(jsonString).toString('base64');
+            console.log('Step 4: Base64 string created, length:', dataString.length);
+            
+            console.log('Step 5: Creating HTML response...');
+            
+            // DIAGNOSTIC: Check for potential problematic characters in base64
+            console.log('DIAGNOSTIC: Base64 data sample:', dataString.substring(0, 50) + '...');
+            console.log('DIAGNOSTIC: Base64 contains quotes:', dataString.includes('"'));
+            console.log('DIAGNOSTIC: Base64 contains backslashes:', dataString.includes('\\'));
+            console.log('DIAGNOSTIC: Base64 contains newlines:', dataString.includes('\n'));
+            
+            // Use a more robust approach - store data in a script tag instead of inline
+            const htmlResponse = `
 <!DOCTYPE html>
 <html>
 <head>
     <title>Clever Login Success</title>
+    <script id="clever-data" type="application/json">${JSON.stringify(availableData)}</script>
     <script>
-        localStorage.setItem('cleverData', '${escapedData}');
-        window.location.href = '/?login=success';
+        console.log('=== BROWSER DEBUG START ===');
+        console.log('Processing login page loaded at:', new Date().toISOString());
+        console.log('DIAGNOSTIC: Script tag method being used');
+        
+        function updateStatus(message) {
+            var statusDiv = document.getElementById('status');
+            if (statusDiv) {
+                statusDiv.innerHTML += '<p>' + message + '</p>';
+            }
+            console.log('STATUS:', message);
+        }
+        
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('DIAGNOSTIC: DOMContentLoaded fired');
+            updateStatus('DOM loaded, starting data processing...');
+            
+            try {
+                updateStatus('Step 1: Getting data from script tag...');
+                var scriptTag = document.getElementById('clever-data');
+                console.log('DIAGNOSTIC: Script tag found:', !!scriptTag);
+                
+                if (!scriptTag) {
+                    throw new Error('Script tag with data not found');
+                }
+                
+                updateStatus('Step 2: Parsing JSON from script tag...');
+                var cleverData = JSON.parse(scriptTag.textContent);
+                console.log('DIAGNOSTIC: Data parsed successfully, keys:', Object.keys(cleverData));
+                updateStatus('Step 3: JSON parsed successfully, keys: ' + Object.keys(cleverData).join(', '));
+                
+                updateStatus('Step 4: Converting to JSON string for storage...');
+                var jsonString = JSON.stringify(cleverData);
+                console.log('DIAGNOSTIC: JSON string length:', jsonString.length);
+                
+                updateStatus('Step 5: Storing in localStorage...');
+                localStorage.setItem('cleverData', jsonString);
+                updateStatus('Step 6: Data stored successfully!');
+                
+                updateStatus('Step 7: Redirecting in 2 seconds...');
+                setTimeout(function() {
+                    console.log('DIAGNOSTIC: About to redirect');
+                    updateStatus('Step 8: Redirecting now...');
+                    window.location.href = '/?login=success';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('=== BROWSER ERROR ===', error);
+                console.error('DIAGNOSTIC: Error occurred at:', new Date().toISOString());
+                updateStatus('ERROR: ' + error.message);
+                updateStatus('Error stack: ' + (error.stack || 'No stack trace'));
+                
+                // Show error details in the page
+                var errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'background: #ffe6e6; border: 1px solid #ff0000; padding: 10px; margin: 10px 0; border-radius: 4px;';
+                errorDiv.innerHTML = '<strong>Error Details:</strong><br>' +
+                                   'Message: ' + error.message + '<br>' +
+                                   'Stack: ' + (error.stack || 'No stack trace');
+                document.body.appendChild(errorDiv);
+                
+                // Still try to redirect on error
+                setTimeout(function() {
+                    window.location.href = '/?login=error&message=' + encodeURIComponent(error.message);
+                }, 3000);
+            }
+        });
+        
+        // DIAGNOSTIC: Log if script runs immediately
+        console.log('DIAGNOSTIC: Script tag executed immediately');
     </script>
 </head>
 <body>
-    <p>Processing login...</p>
+    <h2>🔄 Processing Clever Login...</h2>
+    <div id="status">
+        <p>Initializing...</p>
+    </div>
+    <p><small>Debug info will appear above. If redirect fails, <a href="/?login=success">click here</a>.</small></p>
+    
+    <div id="diagnostic-info" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 4px; font-family: monospace; font-size: 12px;">
+        <strong>Diagnostic Info:</strong><br>
+        Timestamp: <span id="page-timestamp"></span><br>
+        User Agent: <span id="user-agent"></span><br>
+        Local Storage Available: <span id="localStorage-available"></span>
+    </div>
+    
+    <script>
+        // Fill in diagnostic info immediately
+        document.getElementById('page-timestamp').textContent = new Date().toISOString();
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+        try {
+            localStorage.setItem('test', 'test');
+            localStorage.removeItem('test');
+            document.getElementById('localStorage-available').textContent = 'YES';
+        } catch (e) {
+            document.getElementById('localStorage-available').textContent = 'NO - ' + e.message;
+        }
+    </script>
 </body>
 </html>
-        `);
+`;
+            
+            console.log('Step 6: HTML response created, length:', htmlResponse.length);
+            console.log('Step 7: Sending response...');
+            
+            res.send(htmlResponse);
+            
+            console.log('Step 8: Response sent successfully!');
+            
+        } catch (error) {
+            console.error('ERROR in response generation:', error);
+            console.error('Error stack:', error.stack);
+            res.redirect(`/?login=error&message=${encodeURIComponent('Server error generating response')}`);
+        }
 
     } catch (error) {
         console.error('OAuth Error Details:', {

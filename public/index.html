@@ -484,10 +484,14 @@
         
         // Check for stored Clever data on page load
         window.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, checking for data...');
+            
             // Check URL parameters for login status
             const urlParams = new URLSearchParams(window.location.search);
             const loginStatus = urlParams.get('login');
             const errorMessage = urlParams.get('message');
+            
+            console.log('Login status:', loginStatus);
             
             if (loginStatus === 'error' && errorMessage) {
                 showError(decodeURIComponent(errorMessage));
@@ -496,16 +500,22 @@
             
             // Check for stored data in localStorage
             const storedData = localStorage.getItem('cleverData');
+            console.log('Stored data found:', storedData ? 'YES' : 'NO');
+            console.log('Stored data length:', storedData ? storedData.length : 'N/A');
+            
             if (storedData) {
                 try {
                     const cleverData = JSON.parse(storedData);
-                    console.log('Found stored Clever data:', cleverData);
+                    console.log('Successfully parsed Clever data:', cleverData);
                     displayUserData(cleverData);
                 } catch (error) {
                     console.error('Error parsing stored Clever data:', error);
+                    console.error('Raw stored data:', storedData);
                     showError('Error loading stored authentication data. Please try logging in again.');
                     localStorage.removeItem('cleverData'); // Clear corrupted data
                 }
+            } else {
+                console.log('No stored data found');
             }
         });
     </script>

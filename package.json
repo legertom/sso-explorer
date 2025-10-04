@@ -1,7 +1,7 @@
 {
   "name": "clever-print-app",
   "version": "1.0.0",
-  "description": "School Print Center Management System with Clever SSO integration",
+  "description": "Clever District SSO Explorer - Demo application for Clever OAuth integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,18 +11,14 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "build": "echo 'Build step placeholder - add frontend build process here'",
-    "audit": "npm audit --audit-level moderate",
-    "db:migrate": "sequelize-cli db:migrate",
-    "db:seed": "sequelize-cli db:seed:all",
-    "db:reset": "sequelize-cli db:migrate:undo:all && npm run db:migrate && npm run db:seed"
+    "audit": "npm audit --audit-level moderate"
   },
   "keywords": [
-    "print-center",
-    "school-management",
     "clever-sso",
+    "oauth",
     "education",
-    "document-management"
+    "sso-explorer",
+    "district-sso"
   ],
   "author": "Tom Leger",
   "license": "ISC",
@@ -32,22 +28,13 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.1",
-    "helmet": "^8.1.0",
-    "multer": "^1.4.5",
-    "pdf-parse": "^1.1.1",
-    "sequelize": "^6.35.0",
-    "sqlite3": "^5.1.6",
-    "socket.io": "^4.7.4",
-    "nodemailer": "^6.9.8",
-    "node-cron": "^3.0.3",
-    "uuid": "^9.0.1"
+    "helmet": "^8.1.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "prettier": "^3.1.1",
-    "sequelize-cli": "^6.6.2",
     "supertest": "^6.3.3"
   },
   "engines": {
@@ -57,9 +44,8 @@
   "jest": {
     "testEnvironment": "node",
     "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/database/migrations/**",
-      "!src/database/seeders/**"
+      "*.js",
+      "!node_modules/**"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": ["text", "lcov", "html"]
