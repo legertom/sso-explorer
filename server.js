@@ -233,128 +233,39 @@ app.get('/auth/clever/callback', async (req, res) => {
             console.log('Step 4: Base64 string created, length:', dataString.length);
             
             console.log('Step 5: Creating HTML response...');
-            
-            // DIAGNOSTIC: Check for potential problematic characters in base64
-            console.log('DIAGNOSTIC: Base64 data sample:', dataString.substring(0, 50) + '...');
-            console.log('DIAGNOSTIC: Base64 contains quotes:', dataString.includes('"'));
-            console.log('DIAGNOSTIC: Base64 contains backslashes:', dataString.includes('\\'));
-            console.log('DIAGNOSTIC: Base64 contains newlines:', dataString.includes('\n'));
-            
-            // Use a more robust approach - store data in a script tag instead of inline
+
             const htmlResponse = `
 <!DOCTYPE html>
 <html>
 <head>
     <title>Clever Login Success</title>
-    <script id="clever-data" type="application/json">${JSON.stringify(availableData)}</script>
+    <script id="clever-data" type="application/json">${escapeJsonForHtml(availableData)}</script>
     <script>
-        console.log('=== BROWSER DEBUG START ===');
-        console.log('Processing login page loaded at:', new Date().toISOString());
-        console.log('DIAGNOSTIC: Script tag method being used');
-        
-        function updateStatus(message) {
-            var statusDiv = document.getElementById('status');
-            if (statusDiv) {
-                statusDiv.innerHTML += '<p>' + message + '</p>';
-            }
-            console.log('STATUS:', message);
-        }
-        
         window.addEventListener('DOMContentLoaded', function() {
-            console.log('DIAGNOSTIC: DOMContentLoaded fired');
-            updateStatus('DOM loaded, starting data processing...');
-            
             try {
-                updateStatus('Step 1: Getting data from script tag...');
                 var scriptTag = document.getElementById('clever-data');
-                console.log('DIAGNOSTIC: Script tag found:', !!scriptTag);
-                
-                if (!scriptTag) {
-                    throw new Error('Script tag with data not found');
-                }
-                
-                updateStatus('Step 2: Parsing JSON from script tag...');
                 var cleverData = JSON.parse(scriptTag.textContent);
-                console.log('DIAGNOSTIC: Data parsed successfully, keys:', Object.keys(cleverData));
-                updateStatus('Step 3: JSON parsed successfully, keys: ' + Object.keys(cleverData).join(', '));
-                
-                updateStatus('Step 4: Converting to JSON string for storage...');
-                var jsonString = JSON.stringify(cleverData);
-                console.log('DIAGNOSTIC: JSON string length:', jsonString.length);
-                
-                updateStatus('Step 5: Storing in localStorage...');
-                localStorage.setItem('cleverData', jsonString);
-                updateStatus('Step 6: Data stored successfully!');
-                
-                updateStatus('Step 7: Redirecting in 2 seconds...');
-                setTimeout(function() {
-                    console.log('DIAGNOSTIC: About to redirect');
-                    updateStatus('Step 8: Redirecting now...');
-                    window.location.href = '/?login=success';
-                }, 2000);
-                
+                localStorage.setItem('cleverData', JSON.stringify(cleverData));
+                window.location.replace('/?login=success');
             } catch (error) {
-                console.error('=== BROWSER ERROR ===', error);
-                console.error('DIAGNOSTIC: Error occurred at:', new Date().toISOString());
-                updateStatus('ERROR: ' + error.message);
-                updateStatus('Error stack: ' + (error.stack || 'No stack trace'));
-                
-                // Show error details in the page
-                var errorDiv = document.createElement('div');
-                errorDiv.style.cssText = 'background: #ffe6e6; border: 1px solid #ff0000; padding: 10px; margin: 10px 0; border-radius: 4px;';
-                errorDiv.innerHTML = '<strong>Error Details:</strong><br>' +
-                                   'Message: ' + error.message + '<br>' +
-                                   'Stack: ' + (error.stack || 'No stack trace');
-                document.body.appendChild(errorDiv);
-                
-                // Still try to redirect on error
-                setTimeout(function() {
-                    window.location.href = '/?login=error&message=' + encodeURIComponent(error.message);
-                }, 3000);
+                window.location.replace('/?login=error&message=' + encodeURIComponent(error.message));
             }
         });
-        
-        // DIAGNOSTIC: Log if script runs immediately
-        console.log('DIAGNOSTIC: Script tag executed immediately');
     </script>
 </head>
 <body>
-    <h2>🔄 Processing Clever Login...</h2>
-    <div id="status">
-        <p>Initializing...</p>
-    </div>
-    <p><small>Debug info will appear above. If redirect fails, <a href="/?login=success">click here</a>.</small></p>
-    
-    <div id="diagnostic-info" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 4px; font-family: monospace; font-size: 12px;">
-        <strong>Diagnostic Info:</strong><br>
-        Timestamp: <span id="page-timestamp"></span><br>
-        User Agent: <span id="user-agent"></span><br>
-        Local Storage Available: <span id="localStorage-available"></span>
-    </div>
-    
-    <script>
-        // Fill in diagnostic info immediately
-        document.getElementById('page-timestamp').textContent = new Date().toISOString();
-        document.getElementById('user-agent').textContent = navigator.userAgent;
-        try {
-            localStorage.setItem('test', 'test');
-            localStorage.removeItem('test');
-            document.getElementById('localStorage-available').textContent = 'YES';
-        } catch (e) {
-            document.getElementById('localStorage-available').textContent = 'NO - ' + e.message;
-        }
-    </script>
+    <p>Finalizing Clever login…</p>
 </body>
 </html>
 `;
-            
+
             console.log('Step 6: HTML response created, length:', htmlResponse.length);
             console.log('Step 7: Sending response...');
-            
+
             res.send(htmlResponse);
-            
+
             console.log('Step 8: Response sent successfully!');
-            
+
         } catch (error) {
             console.error('ERROR in response generation:', error);
             console.error('Error stack:', error.stack);
