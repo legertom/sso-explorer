@@ -9,6 +9,7 @@ A comprehensive web application that demonstrates Clever's District SSO integrat
 - **Security First**: Rate limiting, helmet middleware, and proper token handling
 - **Responsive Design**: Clean, modern interface that works on all devices
 - **Real-time Data**: Live API responses from Clever's platform
+- **Full Role Coverage**: Designed for district admins, teachers, staff, and students under District SSO
 
 ## 📊 Data Available
 
@@ -33,6 +34,8 @@ A comprehensive web application that demonstrates Clever's District SSO integrat
 - Node.js (v14 or higher)
 - A Clever developer account
 - Registered Clever OAuth application
+
+> **Production**: The live instance is hosted on Railway at https://sso-explorer-production.up.railway.app.
 
 ### Installation
 
@@ -73,24 +76,13 @@ A comprehensive web application that demonstrates Clever's District SSO integrat
 5. **Open your browser**
    Navigate to `http://localhost:3000`
 
-## 🔧 Clever OAuth Setup
+### Local development notes
 
-### 1. Create a Clever Developer Account
-- Visit [Clever's Developer Portal](https://dev.clever.com/)
-- Sign up or log in to your account
-
-### 2. Register Your Application
-- Create a new application in the developer dashboard
-- Set the **Redirect URI** to: `http://localhost:3000/auth/clever/callback`
-- Note your **Client ID** and **Client Secret**
-
-### 3. Configure Scopes
-Ensure your Clever app has these scopes enabled:
-- `read:user_id` - Basic user identification
-- `read:districts` - District information access
-- `read:schools` - School data (if needed)
-- `read:teachers` - Teacher information (if applicable)
-- `read:students` - Student data (if applicable)
+- The Clever app is configured with two redirect URIs:
+  - `http://localhost:3000/auth/clever/callback` for local testing
+  - `https://sso-explorer-production.up.railway.app/auth/clever/callback` for the production deployment on Railway
+- Update your local `.env` with the development Client ID/Secret before running `npm run dev`.
+- Production secrets are stored as Railway service variables; redeploy after any changes.
 
 ## 📁 Project Structure
 
