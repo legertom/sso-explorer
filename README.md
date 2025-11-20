@@ -1,6 +1,8 @@
 # 🎓 Clever District SSO Explorer
 
-A comprehensive web application that demonstrates Clever's District SSO integration, allowing you to explore the rich data available through Clever's OAuth 2.0 authentication flow.
+> **🚀 Internal Template**: Want to use this repo as a starter for a new Clever app? Check out the [Template Guide](TEMPLATE_GUIDE.md).
+
+A secure, modern web application demonstrating Clever's District SSO integration. Built with **Node.js (Express)** and **React (Vite)**, allowing you to explore the rich data available through Clever's OAuth 2.0 authentication flow.
 
 ## 🌟 Features
 
